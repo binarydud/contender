@@ -30,7 +30,7 @@ pass_config = click.make_pass_decorator(Contender)
 # @click.option('--repository')
 # @click.option('--token')
 # @click.option('--owner')
-# @click.option('--config')
+@click.option('--config')
 @click.pass_context
 def contender(ctx, **kwargs):
     ctx.obj = Contender()
@@ -40,18 +40,19 @@ def contender(ctx, **kwargs):
     if config:
         config_file = config
     config_parser.read(config_file)
-    for key, value in config_parser.items('contender'):
-        ctx.obj.set_config(key, value)
+    if 'contender' in config_parser.sections():
+        for key, value in config_parser.items('contender'):
+            ctx.obj.set_config(key, value)
 
     # if kwargs['user']:
     #     ctx.obj.set_config("user", kwargs["user"])
     # if kwargs['repository']:
     #     ctx.obj.set_config("repository", kwargs["repository"])
-
-    try:
-        validate_config(ctx.obj.config)
-    except AssertionError:
-        raise click.UsageError('Incomplete configuration', ctx)
+    if ctx.invoked_subcommand != 'init':
+        try:
+            validate_config(ctx.obj.config)
+        except AssertionError:
+            raise click.UsageError('Incomplete configuration', ctx)
 
 
 @contender.command()
@@ -103,6 +104,25 @@ def delete_branch(contender, branch):
 @contender.command()
 def delete_release():
     pass
+
+
+@contender.command()
+def init():
+    user = raw_input('what is the username to connect to: ')
+    token = raw_input('the token to use for communicating to the github api: ')
+    repository = raw_input('repository the work will be done on: ')
+    owner = raw_input('who owns the repository: ')
+    config_file = click.get_app_dir('contender', force_posix=True)
+
+    config = SafeConfigParser()
+    config.add_section('contender')
+    config.set('contender', 'user', user)
+    config.set('contender', 'token', token)
+    config.set('contender', 'repository', repository)
+    config.set('contender', 'owner', owner)
+    with open(config_file, 'wb') as configfile:
+        config.write(configfile)
+
 
 # if __name__ == "__main__":
 #    contender(obj={"contender": {}})
