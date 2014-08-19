@@ -1,14 +1,7 @@
 from __future__ import print_function
 
 import click
-from six.moves import configparser
-
-try:
-    # Python 2
-    prompt = raw_input
-except NameError:
-    # Python 3
-    prompt = input
+from six.moves import configparser, input
 
 # from functions import *
 from contender.utils import (
@@ -81,7 +74,8 @@ def release_candidate(contender, release_branch):
 def merge_release(contender, release_branch):
     backend = contender.backend
     # Perform a merge from head into base
-    backend.repo.merge("master", release_branch, 'merging from contender tool')
+    base_branch = backend.config.get("base_branch", "master")
+    backend.repo.merge(base_branch, release_branch, 'merging from contender tool')
     # prune release branch
     release_branch = backend.repo.ref("heads/{}".format(release_branch))
     release_branch.delete()
@@ -99,10 +93,11 @@ def delete_branch(contender, branch):
 
 @contender.command()
 def init():
-    user = prompt('what is the username to connect to: ')
-    token = prompt('the token to use for communicating to the github api: ')
-    repository = prompt('repository the work will be done on: ')
-    owner = prompt('who owns the repository: ')
+    user = input('what is the username to connect to: ')
+    token = input('the token to use for communicating to the github api: ')
+    repository = input('repository the work will be done on: ')
+    owner = input('who owns the repository: ')
+    base_branch = input("what do you want to use as the base branch: ")
     config_file = click.get_app_dir('contender', force_posix=True)
 
     config = configparser.SafeConfigParser()
@@ -111,5 +106,6 @@ def init():
     config.set('contender', 'token', token)
     config.set('contender', 'repository', repository)
     config.set('contender', 'owner', owner)
+    config.set('contender', 'base_branch', base_branch)
     with open(config_file, 'wb') as configfile:
         config.write(configfile)

@@ -2,8 +2,9 @@ import github3
 
 
 class GithubBackend(object):
-    def __init__(self, repo):
+    def __init__(self, repo, config={}):
         self.repo = repo
+        self.config = config
 
     @classmethod
     def build_repo(self, user, token, owner, repository):
@@ -15,7 +16,8 @@ class GithubBackend(object):
         return repo
 
     def list_pull_requests(self):
-        pr_list = list(self.get_pull_requests("master"))
+        base_branch = self.config.get("base_branch", "master")
+        pr_list = list(self.get_pull_requests(base_branch))
         return pr_list
 
     def get_branch(self, branch_name):
@@ -36,7 +38,8 @@ class GithubBackend(object):
             branch.delete()
         integration = self.create_branch(branch_name, master.object.sha)
 
-        for pr in self.get_pull_requests("master"):
+        base_branch = self.config.get("base_branch", "master")
+        for pr in self.get_pull_requests(base_branch):
             self.merge_pull_request(integration.ref, pr)
 
     def create_release_candidate(self, branch_name, pull_requests):

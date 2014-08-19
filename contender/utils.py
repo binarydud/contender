@@ -18,7 +18,7 @@ def load_backend(config):
     Klass = pkg_resources.EntryPoint.parse("name={}".format(dotted_path)).load(False)
 
     repo = Klass.build_repo(config['user'], config['token'], config['owner'], config['repository'])
-    return Klass(repo=repo)
+    return Klass(repo=repo, config=config)
 
 
 def notify():
