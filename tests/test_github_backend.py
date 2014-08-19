@@ -1,6 +1,9 @@
 import pytest
 import github3
-import mock
+try:
+    from unittest import mock
+except:
+    import mock
 from pretend import stub
 from github3.repos.repo import Repository
 

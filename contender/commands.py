@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import click
-from ConfigParser import SafeConfigParser
+from six.moves import configparser
 
 try:
     # Python 2
@@ -36,7 +36,7 @@ pass_config = click.make_pass_decorator(Contender)
 def contender(ctx, config):
     ctx.obj = Contender()
     config_file = click.get_app_dir('contender', force_posix=True)
-    config_parser = SafeConfigParser()
+    config_parser = configparser.SafeConfigParser()
     if config:
         config_file = config
     config_parser.read(config_file)
@@ -105,7 +105,7 @@ def init():
     owner = prompt('who owns the repository: ')
     config_file = click.get_app_dir('contender', force_posix=True)
 
-    config = SafeConfigParser()
+    config = configparser.SafeConfigParser()
     config.add_section('contender')
     config.set('contender', 'user', user)
     config.set('contender', 'token', token)
