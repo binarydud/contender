@@ -1,23 +1,28 @@
-import collections
+from __future__ import print_function
+
 import click
 from ConfigParser import SafeConfigParser
 
+try:
+    # Python 2
+    prompt = raw_input
+except NameError:
+    # Python 3
+    prompt = input
+
 # from functions import *
-from functions import (
+from contender.utils import (
     validate_config,
-    build_repo,
-    list_prs,
-    integration_branch,
+    load_backend,
     notify,
-    pr_from_numbers,
-    create_release_candidate,
-    get_prs
 )
 
 
 class Contender(object):
-    def __init__(self):
+    def __init__(self, backend=None):
         self.config = {}
+        if backend:
+            self.backend = backend
 
     def set_config(self, key, value):
         self.config[key] = value
@@ -26,17 +31,12 @@ pass_config = click.make_pass_decorator(Contender)
 
 
 @click.group()
-# @click.option('--user')
-# @click.option('--repository')
-# @click.option('--token')
-# @click.option('--owner')
 @click.option('--config')
 @click.pass_context
-def contender(ctx, **kwargs):
+def contender(ctx, config):
     ctx.obj = Contender()
     config_file = click.get_app_dir('contender', force_posix=True)
     config_parser = SafeConfigParser()
-    config = kwargs['config']
     if config:
         config_file = config
     config_parser.read(config_file)
@@ -44,23 +44,20 @@ def contender(ctx, **kwargs):
         for key, value in config_parser.items('contender'):
             ctx.obj.set_config(key, value)
 
-    # if kwargs['user']:
-    #     ctx.obj.set_config("user", kwargs["user"])
-    # if kwargs['repository']:
-    #     ctx.obj.set_config("repository", kwargs["repository"])
     if ctx.invoked_subcommand != 'init':
         try:
             validate_config(ctx.obj.config)
         except AssertionError:
             raise click.UsageError('Incomplete configuration', ctx)
 
+    ctx.obj.backend = load_backend(ctx.obj.config)
+
 
 @contender.command()
 @pass_config
 def integration(contender):
-    config = contender.config
-    repo = build_repo(config['user'], config['token'], config['owner'], config['repository'])
-    integration_branch(repo)
+    backend = contender.backend
+    backend.create_integration_branch()
     notify()
 
 
@@ -68,11 +65,13 @@ def integration(contender):
 @click.argument("release_branch")
 @pass_config
 def release_candidate(contender, release_branch):
-    config = contender.config
-    repo = build_repo(config['user'], config['token'], config['owner'], config['repository'])
-    pr_numbers = list_prs(repo)
-    pr_list = pr_from_numbers(repo, pr_numbers)
-    create_release_candidate(repo, release_branch, pr_list)
+    backend = contender.backend
+    map(print, backend.get_pull_requests())
+    results = prompt('Choose the pull requests youd like: ')
+    pr_numbers = [item.strip() for item in results.split(',')]
+
+    pull_requests = map(backend.pull_request_from_number, pr_numbers)
+    backend.create_release_candidate(release_branch, pull_requests)
     notify()
 
 
@@ -80,12 +79,11 @@ def release_candidate(contender, release_branch):
 @click.argument("release_branch")
 @pass_config
 def merge_release(contender, release_branch):
-    config = contender.config
-    repo = build_repo(config['user'], config['token'], config['owner'], config['repository'])
+    backend = contender.backend
     # Perform a merge from head into base
-    repo.merge("master", release_branch, 'merging from contender tool')
+    backend.repo.merge("master", release_branch, 'merging from contender tool')
     # prune release branch
-    release_branch = repo.ref("heads/{}".format(release_branch))
+    release_branch = backend.repo.ref("heads/{}".format(release_branch))
     release_branch.delete()
     # TODO - prune pr branches
     # pull_requests = get_prs(repo, "master")
@@ -95,23 +93,16 @@ def merge_release(contender, release_branch):
 @click.argument("branch")
 @pass_config
 def delete_branch(contender, branch):
-    config = contender.config
-    repo = build_repo(config['user'], config['token'], config['owner'], config['repository'])
-    branch = repo.ref('heads/{}'.format(branch))
-    branch.delete()
-
-
-@contender.command()
-def delete_release():
-    pass
+    backend = contender.backend
+    backend.delete_branch(branch)
 
 
 @contender.command()
 def init():
-    user = raw_input('what is the username to connect to: ')
-    token = raw_input('the token to use for communicating to the github api: ')
-    repository = raw_input('repository the work will be done on: ')
-    owner = raw_input('who owns the repository: ')
+    user = prompt('what is the username to connect to: ')
+    token = prompt('the token to use for communicating to the github api: ')
+    repository = prompt('repository the work will be done on: ')
+    owner = prompt('who owns the repository: ')
     config_file = click.get_app_dir('contender', force_posix=True)
 
     config = SafeConfigParser()
@@ -122,7 +113,3 @@ def init():
     config.set('contender', 'owner', owner)
     with open(config_file, 'wb') as configfile:
         config.write(configfile)
-
-
-# if __name__ == "__main__":
-#    contender(obj={"contender": {}})

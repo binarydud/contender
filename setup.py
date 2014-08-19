@@ -12,6 +12,11 @@ setup(
         'click',
         'github3.py'
     ],
+    tests_require=[
+        'pytest',
+        'pretend',
+        'pytest-cov',
+    ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -24,7 +29,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'contender = contender.main:contender',
+            'contender = contender.commands:contender',
         ],
     },
 )
