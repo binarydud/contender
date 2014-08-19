@@ -1,0 +1,2 @@
+click==2.4
+github3.py==0.9.0
