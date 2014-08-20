@@ -10,7 +10,8 @@ setup(
     include_package_data=True,
     install_requires=[
         'click',
-        'github3.py'
+        'github3.py',
+        'six'
     ],
     tests_require=[
         'pytest',
