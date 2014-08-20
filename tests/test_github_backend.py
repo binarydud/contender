@@ -1,5 +1,6 @@
 import pytest
 import github3
+import collections
 try:
     from unittest import mock
 except:
@@ -43,6 +44,15 @@ def create_session_mock(*args):
 
 @pytest.fixture()
 def repo():
+    def mocked_post(self, url, data=None, json=True, **kwargs):
+        print(url, data, json, kwargs)
+        new_data = collections.OrderedDict()
+        for key in sorted(data.keys()):
+            new_data[key] = data[key]
+
+        return super(Repository, self)._post(url, new_data, json, **kwargs)
+
+    Repository._post = mocked_post
     repo = Repository({"url": "https://api.github.com/repos/binarydud/mock-contender"}, session=create_session_mock())
     repo._build_url = build_url
     return repo
@@ -58,7 +68,7 @@ def test_list_pull_requests(backend):
     backend.repo._session.get.assert_called_once_with(
         'https://api.github.com/repos/binarydud/mock-contender',
         headers={},
-        params={'sort': u'created', 'per_page': 100, 'direction': u'desc', 'base': 'master'}
+        params={'base': 'master', 'direction': u'desc', 'per_page': 100, 'sort': u'created'}
     )
 
 
@@ -71,7 +81,7 @@ def test_create_branch(backend):
     backend.create_branch("test-branch", 12345)
     backend.repo._session.post.assert_called_once_with(
         'https://api.github.com/repos/binarydud/mock-contender/refs',
-        '{"sha": 12345, "ref": "refs/heads/test-branch"}'
+        '{"ref": "refs/heads/test-branch", "sha": 12345}'
     )
 
 
@@ -83,9 +93,10 @@ def test_delete_branch(backend):
 @pytest.mark.xfail
 def test_create_integration_branch(backend):
     backend.create_integration_branch()
+    assert backend.repo._session.post.called
     backend.repo._session.post.assert_called_once_with(
         'https://api.github.com/repos/binarydud/mock-contender/refs',
-        '{"sha": 12345, "ref": "refs/heads/test-branch"}'
+        '{"ref": "refs/heads/test-branch", "sha": 12345}'
     )
 
 
@@ -105,7 +116,7 @@ def test_merge_pull_request(backend):
     backend.merge_pull_request("base", pr)
     backend.repo._session.post.assert_called_once_with(
         'https://api.github.com/repos/binarydud/mock-contender',
-        '{"head": 123, "base": "base"}'
+        '{"base": "base", "head": 123}'
     )
 
 
