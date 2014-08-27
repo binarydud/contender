@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name='contender',
-    version='0.1',
+    version='0.2',
     author='Matt George',
     author_email='mgeorge@gmail.com',
     url='http://github.com/binarydud/contender',
