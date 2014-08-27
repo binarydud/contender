@@ -60,7 +60,7 @@ def integration(contender):
 def release_candidate(contender, release_branch):
     backend = contender.backend
     map(print, backend.get_pull_requests())
-    results = prompt('Choose the pull requests youd like: ')
+    results = input('Choose the pull requests you would like in this rc: ')
     pr_numbers = [item.strip() for item in results.split(',')]
 
     pull_requests = map(backend.pull_request_from_number, pr_numbers)
@@ -92,13 +92,17 @@ def delete_branch(contender, branch):
 
 
 @contender.command()
-def init():
+@click.option('--config')
+def init(config):
     user = input('what is the username to connect to: ')
     token = input('the token to use for communicating to the github api: ')
     repository = input('repository the work will be done on: ')
     owner = input('who owns the repository: ')
     base_branch = input("what do you want to use as the base branch: ")
-    config_file = click.get_app_dir('contender', force_posix=True)
+    if config:
+        config_file = config
+    else:
+        config_file = click.get_app_dir('contender', force_posix=True)
 
     config = configparser.SafeConfigParser()
     config.add_section('contender')
