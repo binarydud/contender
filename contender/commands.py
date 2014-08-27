@@ -43,7 +43,7 @@ def contender(ctx, config):
         except AssertionError:
             raise click.UsageError('Incomplete configuration', ctx)
 
-    ctx.obj.backend = load_backend(ctx.obj.config)
+        ctx.obj.backend = load_backend(ctx.obj.config)
 
 
 @contender.command()
